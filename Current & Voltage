@@ -1,0 +1,73 @@
+#include "ACS712.h"
+#include <ZMPT101B.h>
+
+
+//zmpt
+#define SENSITIVITYVolt 500.0f       // Adjust this value to calibrate sensitivity
+#define CALIBRATION_FACTOR 1.58  // Calibration factor to correct the reading (230 / 155)
+
+ZMPT101B voltageSensor(14, 50.0);
+
+//ACS sensor
+#define ACS712_PIN 34  // Analog pin where ACS712 is connected
+#define VREF 3.3       // ESP32 ADC reference voltage
+#define ADC_RES 4095   // ESP32 ADC resolution (12-bit)
+#define SENSITIVITY 66 // ACS712 30A model sensitivity (mV/A)
+
+ACS712 ACS(ACS712_PIN, VREF, ADC_RES, SENSITIVITY);
+
+float zeroCurrent = .390; // Offset correction (Adjust this based on no-load readings)
+
+void setup() {
+  Serial.begin(115200);
+  Serial.println("ACS712 Current Sensor Test");
+  delay(2000);  // Allow time for the sensor to stabilize
+ voltageSensor.setSensitivity(SENSITIVITYVolt);
+  
+}
+
+void loop() {
+  float current = readCurrent();
+   sensor();
+  Serial.print("Measured Current: ");
+  Serial.print(current, 3); // Show 3 decimal places
+  Serial.println(" A");
+  
+
+  delay(1000); // Wait 1 second before the next reading
+}
+
+//ZMPT sensor
+void sensor() {
+  float voltage = voltageSensor.getRmsVoltage() * CALIBRATION_FACTOR;  // Apply calibration factor
+  if (voltage < 40){
+    Serial.print("Voltage: 0.000");
+    Serial.println(); 
+  }
+
+  else{
+  Serial.print("Voltage: ");
+  Serial.println(voltage);
+    
+  }
+}
+
+
+float readCurrent() {
+  float average = 0;
+  int samples = 100; // Number of readings for averaging
+
+  for (int i = 0; i < samples; i++) {
+    average += ACS.mA_AC();  // Read AC current in milliamps
+    delay(2);  // Small delay between samples to reduce noise
+  }
+
+  float current_A = abs(average / samples) / 1000.0; // Convert mA to A
+
+  // Offset correction
+  current_A -= zeroCurrent;   // Subtract the idle value
+
+  if (current_A < 0.005) current_A = 0; // Ignore small fluctuations
+
+  return current_A;
+}
