@@ -1,3 +1,4 @@
+//when supply voltage- 4.97 v 
 #include "ACS712.h"
 
 #define ACS712_PIN 34  // Analog pin where ACS712 is connected
@@ -7,7 +8,7 @@
 
 ACS712 ACS(ACS712_PIN, VREF, ADC_RES, SENSITIVITY);
 
-float zeroCurrent = .167; // Offset correction (Adjust this based on no-load readings)
+float zeroCurrent = .390; // Offset correction (Adjust this based on no-load readings)
 
 void setup() {
   Serial.begin(115200);
